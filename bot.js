@@ -28,26 +28,29 @@ const rwClient = client.readWrite;
 
 function getRandomQuote() {
   const { quotes, author } = quotesData;
-  const quote = quotes[Math.floor(Math.random() * quotes.length)];
-  return { quote, author };
+  const entry = quotes[Math.floor(Math.random() * quotes.length)];
+  return { text: entry.text, source: entry.source, author };
 }
 
-function formatTweet(quote, author) {
-  const tweet = `"${quote}" — ${author}`;
-  // Twitter limit is 280 characters
-  if (tweet.length > 280) {
-    const maxQuoteLength = 280 - author.length - 6; // 6 = `"" — `.length
-    return `"${quote.substring(0, maxQuoteLength - 3)}..." — ${author}`;
-  }
-  return tweet;
+function formatTweet(text, source, author) {
+  // Format: "Quote" — Herman Melville, Moby-Dick, Chapter 1
+  const full = `"${text}" — ${author}, ${source}`;
+  if (full.length <= 280) return full;
+
+  // If too long, try without source
+  const noSource = `"${text}" — ${author}`;
+  if (noSource.length <= 280) return noSource;
+
+  // Truncate the text to fit with ellipsis, keeping attribution
+  const suffix = `..." — ${author}`;
+  return `"${text.substring(0, 280 - suffix.length - 1)}${suffix}`;
 }
 
 async function postQuote() {
-  const { quote, author } = getRandomQuote();
-  const tweet = formatTweet(quote, author);
+  const { text, source, author } = getRandomQuote();
+  const tweet = formatTweet(text, source, author);
 
-  console.log(`[${new Date().toISOString()}] Posting tweet (${tweet.length} chars):`);
-  console.log(tweet);
+  console.log(`[${new Date().toISOString()}] Posting tweet (${tweet.length} chars):\n${tweet}`);
 
   try {
     const response = await rwClient.v2.tweet(tweet);
